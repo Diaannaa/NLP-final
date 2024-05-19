@@ -1,0 +1,21 @@
+At the beginning, we imported all the necessary libraries. NumPy and Pandas will help us with data manipulation, nltk is needed for NLP tasks, TensorFlow for building and training the neural network, Matplotlib and Seaborn for visualization, and Scikit-Learn for metrics and modeling. Then, we loaded the dataset with news headlines into a DataFrame using Pandas.
+
+Next, we created a function to clean the text to prepare the news headlines for analysis. This function converts text to lowercase, removes special characters and numbers, keeping only letters. We applied this function to all news headlines in the dataset.
+
+Then, we loaded pre-trained GloVe word vectors from the gensim library. After that, we created the avg_w2vec function, which converts sentences into vectors by averaging the GloVe vectors of the words in each sentence. This function is needed to convert text into numerical form for subsequent analysis. After this, we split the data into features (X) and labels (y).
+
+We split the data into training and testing sets in an 80/20 ratio to train the models on one part of the data and test on the other.
+
+We applied the avd_w2vec function to transform the text data into numerical vectors and trained a KNN classifier (with 10 nearest neighbors) on the training set. Then we made predictions on the test set and evaluated the model using the ROC AUC metric.
+
+We also trained a logistic regression model on the same data and evaluated it using the same ROC AUC metric.
+
+For the neural network, we used the Tokenizer from Keras to convert texts into sequences of integers. We also padded these sequences to a uniform length. As a result, each news headline is represented as an array of numbers of fixed length.
+
+We created an embedding matrix where each row corresponds to a GloVe vector for a word from the vocabulary. This helps initialize the word embedding layer in the neural network.
+
+We built a neural network using an embedding layer, a bidirectional LSTM layer, a dropout layer, and dense layers. The network trains on sequences of numbers and predicts the probability of whether the headline is sarcastic.
+
+We split the data into training and testing sets again to train the neural network. The network trains on batches of 50 elements for two epochs. After training, we made predictions on the test set and evaluated the results using a classification report.
+
+In this project, we successfully detected sarcasm in news headlines using both traditional machine learning models and a neural network with an LSTM layer. The neural network, leveraging pre-trained GloVe embeddings, outperformed traditional models, highlighting the efficacy of deep learning techniques for this NLP task.
