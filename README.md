@@ -38,7 +38,7 @@ def avg_w2vec(sentences):
             print(sentence)
         transformed.append(vector)
     return transformed
-# usage example
+
 
 avg_w2vec(data['headline'].iloc[0])
 X = data['headline']
@@ -79,7 +79,7 @@ X = pad_sequences(X, maxlen = maxlen)
 y = np.asarray(data['is_sarcastic'])
 vocab_size=len(tokenizer.word_index)
 print (vocab_size)
-# I will re-use Glove vectors in order to make the training easier
+
 embedding_matrix = np.zeros((vocab_size + 1, 25))
 
 for word, i in tokenizer.word_index.items():
@@ -103,7 +103,7 @@ model = Model(input_layer,out)
 model.compile(loss='sparse_categorical_crossentropy',optimizer="adam",metrics=['accuracy'])
 model.summary()
 embedding_matrix.shape
-# I need to redefine splits
+
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 10)
 history = model.fit(X_train,y_train,batch_size=50, validation_data=(X_test, y_test), epochs=2, verbose=1)
