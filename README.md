@@ -1,1 +1,115 @@
-# NLP-final
+import numpy as np 
+import pandas as pd
+
+import nltk
+import tensorflow as tf
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import classification_report
+
+
+data = pd.read_json('/kaggle/input/news-headlines-dataset-for-sarcasm-detection/Sarcasm_Headlines_Dataset_v2.json', lines = True)
+data.head()
+
+import re
+
+def cleantext(txt):
+    txt = ' '.join([i for i in re.findall(r'[\w]+', txt.lower().replace("''", ' ')) if i.isalpha()])
+    return txt
+
+data['headline'].apply(cleantext)
+import gensim.downloader as api
+vec = api.load("glove-twitter-25")
+def avg_w2vec(sentences):
+    """
+    It is a function to get the vector representation of headlines
+    """
+    transformed=[]
+    for sentence in sentences:
+        count=0
+        vector=np.zeros(25)
+        for word in sentence.split():
+            if word in vec:
+                vector+=vec[word]
+                count+=1
+        if count!=0:
+            vector/=count
+        else:
+            print(sentence)
+        transformed.append(vector)
+    return transformed
+# usage example
+
+avg_w2vec(data['headline'].iloc[0])
+X = data['headline']
+y = data['is_sarcastic']
+
+from sklearn.model_selection import train_test_split
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 10)
+from sklearn.metrics import roc_auc_score
+from sklearn.neighbors import KNeighborsClassifier
+
+
+x_train_transformed=avg_w2vec(X_train)
+x_test_transformed=avg_w2vec(X_test)
+knn = KNeighborsClassifier(n_neighbors=10)
+knn.fit(x_train_transformed, y_train)
+preds = knn.predict(x_test_transformed)
+roc_auc_score(y_test, preds)
+from sklearn.linear_model import LogisticRegression
+
+model = LogisticRegression()
+
+model.fit(x_train_transformed, y_train)
+preds = model.predict(x_test_transformed)
+roc_auc_score(y_test, preds)
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+from tensorflow.keras.preprocessing.text import Tokenizer
+
+max_features = 10000
+maxlen = 300
+embed_size = 25
+
+tokenizer = Tokenizer(num_words=max_features,filters='!"#$%&()*+,-./:;<=>?@[\\]^_`{|}~\t\n',lower=True,split=' ',
+                      char_level=False)
+tokenizer.fit_on_texts(data['headline'])
+X = tokenizer.texts_to_sequences(data['headline'])
+X = pad_sequences(X, maxlen = maxlen)
+y = np.asarray(data['is_sarcastic'])
+vocab_size=len(tokenizer.word_index)
+print (vocab_size)
+# I will re-use Glove vectors in order to make the training easier
+embedding_matrix = np.zeros((vocab_size + 1, 25))
+
+for word, i in tokenizer.word_index.items():
+    embedding_vector = vec[word] if word in vec else None
+    if embedding_vector is not None:
+        embedding_matrix[i] = embedding_vector
+import tensorflow
+from tensorflow.keras.layers import Dense, Input, LSTM, Embedding, Dropout, Activation, Flatten, Bidirectional, GlobalMaxPool1D
+from tensorflow.keras.models import Model, Sequential
+
+input_layer = Input(shape=(maxlen,),dtype=tensorflow.int64) # simple input layer
+embed = Embedding(embedding_matrix.shape[0],
+                  output_dim=25,
+                  weights=[embedding_matrix], # I use Glove vectors to make training easier
+                  input_length=maxlen, trainable=True)(input_layer)
+lstm=Bidirectional(LSTM(128))(embed)
+drop=Dropout(0.1)(lstm)
+dense = Dense(100,activation='relu')(drop)
+out=Dense(2,activation='softmax')(dense)
+model = Model(input_layer,out)
+model.compile(loss='sparse_categorical_crossentropy',optimizer="adam",metrics=['accuracy'])
+model.summary()
+embedding_matrix.shape
+# I need to redefine splits
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 10)
+history = model.fit(X_train,y_train,batch_size=50, validation_data=(X_test, y_test), epochs=2, verbose=1)
+y_pred = model.predict(np.array(X_test), verbose=1)
+y_pred = [1 if j>0.5 else 0 for i,j in y_pred]
+from sklearn.metrics import accuracy_score
+
+print(classification_report(y_test, y_pred))
+
